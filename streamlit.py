@@ -3,10 +3,8 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
-import heapq
 import time
-from dataclasses import dataclass
-from typing import List, Tuple, Dict
+from branch_bound import OptimizedBranchAndBound
 
 # ============================
 # CONFIGURAÇÃO INICIAL
@@ -21,13 +19,14 @@ st.markdown("Sistema interativo para análise e otimização de sequência de ta
 # ============================
 
 try:
-    df = pd.read_csv("problem_3m_10j.csv")
+    df = pd.read_csv("problem_3m_10j.csv", index_col=0)
 
     if "Unnamed: 0" in df.columns:
         df.drop(columns=["Unnamed: 0"], inplace=True)
 
-    df.columns = [f"Maquina_{i+1}" for i in range(df.shape[1])]
-    df.index = [f"Tarefa_{i+1}" for i in range(df.shape[0])]
+    num_rows, num_cols = df.shape
+    df.columns = [f"Maquina_{i+1}" for i in range(num_cols)]
+    df.index = [f"Tarefa_{i+1}" for i in range(num_rows)]
     df.index.name = "Tarefas"
 
     st.success("✅ Arquivo `problem_3m_10j.csv` carregado automaticamente com sucesso!")
@@ -66,81 +65,7 @@ sns.heatmap(df, annot=True, cmap="YlOrRd", ax=ax)
 ax.set_title("Mapa de Calor - Tempo de Processamento")
 st.pyplot(fig)
 
-# ============================
-# ALGORITMO BRANCH AND BOUND
-# ============================
-
 st.subheader("⚙️ Execução do Algoritmo Branch and Bound")
-
-@dataclass
-class SearchMetrics:
-    nodes_explored: int = 0
-    nodes_pruned: int = 0
-    max_depth: int = 0
-    start_time: float = 0
-    end_time: float = 0
-    feasible_solutions: int = 0
-
-class OptimizedBranchAndBound:
-    def __init__(self, processing_times: List[float]):
-        self.processing_times = processing_times
-        self.num_jobs = len(processing_times)
-        self.num_machines = 3
-        self.best_solution = None
-        self.best_makespan = float("inf")
-        self.metrics = SearchMetrics()
-        self.lb_cache = {}
-
-    def calculate_lower_bound(self, machine_times: List[float], level: int) -> float:
-        state_key = (tuple(machine_times), level)
-        if state_key in self.lb_cache:
-            return self.lb_cache[state_key]
-        current_max = max(machine_times)
-        unassigned_times = self.processing_times[level:]
-        lb = max(current_max, sum(unassigned_times)/self.num_machines if unassigned_times else current_max)
-        self.lb_cache[state_key] = lb
-        return lb
-
-    def solve(self) -> Tuple[List[int], float, Dict]:
-        self.metrics.start_time = time.time()
-        root_machine_times = [0.0, 0.0, 0.0]
-        root_lb = self.calculate_lower_bound(root_machine_times, 0)
-        pq = []
-        heapq.heappush(pq, (root_lb, 0, root_machine_times, [], 0))
-        while pq:
-            current_lb, level, machine_times, assignment, depth = heapq.heappop(pq)
-            self.metrics.nodes_explored += 1
-            self.metrics.max_depth = max(self.metrics.max_depth, depth)
-            if current_lb >= self.best_makespan:
-                self.metrics.nodes_pruned += 1
-                continue
-            if level == self.num_jobs:
-                self.metrics.feasible_solutions += 1
-                makespan = max(machine_times)
-                if makespan < self.best_makespan:
-                    self.best_makespan = makespan
-                    self.best_solution = assignment.copy()
-                continue
-            next_job = self.processing_times[level]
-            for machine in range(self.num_machines):
-                new_times = machine_times.copy()
-                new_times[machine] += next_job
-                new_lb = self.calculate_lower_bound(new_times, level + 1)
-                if new_lb < self.best_makespan:
-                    heapq.heappush(pq, (new_lb, level + 1, new_times, assignment + [machine], depth + 1))
-        self.metrics.end_time = time.time()
-        return self.best_solution, self.best_makespan, self._get_metrics_dict()
-
-    def _get_metrics_dict(self):
-        return {
-            "nodes_explored": self.metrics.nodes_explored,
-            "nodes_pruned": self.metrics.nodes_pruned,
-            "max_depth": self.metrics.max_depth,
-            "execution_time": self.metrics.end_time - self.metrics.start_time,
-            "feasible_solutions": self.metrics.feasible_solutions,
-            "best_makespan": self.best_makespan,
-            "pruning_ratio": self.metrics.nodes_pruned / max(1, self.metrics.nodes_explored),
-        }
 
 # ============================
 # INTERFACE DE EXECUÇÃO
@@ -153,7 +78,7 @@ if st.button("🚀 Executar Branch and Bound"):
     scheduler = OptimizedBranchAndBound(processing_times)
     solution, makespan, metrics = scheduler.solve()
 
-    st.success(f"✅ Melhor Makespan: **{metrics['best_makespan']:.2f}**")
+    st.success(f"✅ Melhor Makespan: **{metrics['menor tempo máximo']:.2f}**")
     st.write("**Máquina atribuída para cada tarefa:**", solution)
 
     # Mostrar métricas
