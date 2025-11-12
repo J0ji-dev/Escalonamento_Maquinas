@@ -1,1 +1,5 @@
+# Ambientes virtuais
 *env
+
+# Artefatos de compilação
+__pycache__/
