@@ -15,6 +15,10 @@ from typing import List, Tuple, Dict
 import time
 from dataclasses import dataclass
 
+# ----------------------------------------------------
+# ⚙️ ETAPA 3: EXECUÇÃO DO ALGORITMO
+# ----------------------------------------------------
+
 @dataclass
 class SearchMetrics:
     nodes_explored: int = 0
@@ -109,7 +113,7 @@ class OptimizedBranchAndBound:
                     heapq.heappush(priority_queue, (new_lb, current_level + 1, new_machine_times, new_assignment, new_depth))
 
         self.metrics.end_time = time.time()
-        return self.best_solution, self.best_makespan, self._get_metrics_dict()
+        return self.best_solution, self.best_makespan, vars(self.metrics)
 
     def _get_metrics_dict(self) -> Dict:
         """Retorna métricas completas para análise"""

@@ -4,7 +4,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 import time
-from branch_bound import BranchAndBound
+from branch_and_bound import OptimizedBranchAndBound
 
 # ============================
 # CONFIGURAÇÃO GERAL
@@ -148,7 +148,7 @@ with tab3:
     st.write("Tempos médios de processamento:", processing_times)
 
     if st.button("🚀 Rodar Branch and Bound"):
-        solver = BranchAndBound(processing_times)
+        solver = OptimizedBranchAndBound(processing_times)
         sol, mk, metrics = solver.solve()
 
         st.success(f"✅ Melhor makespan encontrado: **{mk:.2f}**")
@@ -199,7 +199,7 @@ with tab6:
     tempos = []
     for n in tamanhos:
         start = time.time()
-        solver = BranchAndBound(list(np.random.randint(1, 20, n)))
+        solver = OptimizedBranchAndBound(list(np.random.randint(1, 20, n)))
         solver.solve()
         tempos.append(time.time() - start)
 
