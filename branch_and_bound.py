@@ -9,86 +9,81 @@ Original file is located at
 #BRANCH AND BOUND
 """
 
+# branch_and_bound.py
 import heapq
-import numpy as np
-from typing import List, Tuple, Dict
 import time
-from dataclasses import dataclass
+from typing import List, Tuple, Dict
 
-# ----------------------------------------------------
-# ⚙️ ETAPA 3: EXECUÇÃO DO ALGORITMO
-# ----------------------------------------------------
-
-@dataclass
 class SearchMetrics:
-    nodes_explored: int = 0
-    nodes_pruned: int = 0
-    max_depth: int = 0
-    start_time: float = 0
-    end_time: float = 0
-    feasible_solutions: int = 0
+    def __init__(self):
+        self.nodes_explored = 0
+        self.nodes_pruned = 0
+        self.max_depth = 0
+        self.start_time = 0
+        self.end_time = 0
+        self.feasible_solutions = 0
 
 class OptimizedBranchAndBound:
     def __init__(self, processing_times: List[float]):
         self.processing_times = processing_times
         self.num_jobs = len(processing_times)
         self.num_machines = 3
-
+        
         # Solução
         self.best_solution = None
         self.best_makespan = float('inf')
-
+        
         # Métricas completas
         self.metrics = SearchMetrics()
-
-        # Cache para limites inferiores (otimização)
+        
+        # Cache para limites inferiores
         self.lb_cache = {}
-
+    
     def calculate_lower_bound(self, machine_times: List[float], level: int) -> float:
         """Calcula limite inferior com cache para otimização"""
         # Cria chave única para o estado
         state_key = (tuple(machine_times), level)
-
+        
         if state_key in self.lb_cache:
             return self.lb_cache[state_key]
-
+        
         # Cálculo do LB
         current_max = max(machine_times)
         unassigned_times = self.processing_times[level:]
-
+        
         if not unassigned_times:
             lb = current_max
         else:
             total_remaining = sum(unassigned_times)
             avg_remaining = total_remaining / self.num_machines
             lb = max(current_max, avg_remaining)
-
+        
         self.lb_cache[state_key] = lb
         return lb
-
+    
     def solve(self) -> Tuple[List[int], float, Dict]:
         """Executa Branch and Bound retornando solução e métricas completas"""
         self.metrics.start_time = time.time()
-
+        
         # Nó raiz
         root_machine_times = [0.0, 0.0, 0.0]
         root_lb = self.calculate_lower_bound(root_machine_times, 0)
-
+        
         # Fila de prioridade
         priority_queue = []
-        heapq.heappush(priority_queue, (root_lb, 0, root_machine_times, [], 0))  # último é depth
-
+        heapq.heappush(priority_queue, (root_lb, 0, root_machine_times, [], 0))
+        
         while priority_queue:
             current_lb, current_level, current_machine_times, current_assignment, current_depth = heapq.heappop(priority_queue)
-
+            
             self.metrics.nodes_explored += 1
             self.metrics.max_depth = max(self.metrics.max_depth, current_depth)
-
+            
             # Critério de poda
             if current_lb >= self.best_makespan:
                 self.metrics.nodes_pruned += 1
                 continue
-
+            
             # Condição de parada - solução viável
             if current_level == self.num_jobs:
                 self.metrics.feasible_solutions += 1
@@ -97,72 +92,80 @@ class OptimizedBranchAndBound:
                     self.best_makespan = makespan
                     self.best_solution = current_assignment.copy()
                 continue
-
+            
             # Branching
             next_job_time = self.processing_times[current_level]
-
+            
             for machine in range(self.num_machines):
                 new_machine_times = current_machine_times.copy()
                 new_machine_times[machine] += next_job_time
                 new_assignment = current_assignment + [machine]
                 new_depth = current_depth + 1
-
+                
                 new_lb = self.calculate_lower_bound(new_machine_times, current_level + 1)
-
+                
                 if new_lb < self.best_makespan:
                     heapq.heappush(priority_queue, (new_lb, current_level + 1, new_machine_times, new_assignment, new_depth))
-
+        
         self.metrics.end_time = time.time()
-        return self.best_solution, self.best_makespan, vars(self.metrics)
-
-    def _get_metrics_dict(self) -> Dict:
-        """Retorna métricas completas para análise"""
-        return {
+        
+        # 🔥 CORREÇÃO AQUI: Calcular pruning_ratio ANTES de criar o dicionário
+        pruning_ratio = self.metrics.nodes_pruned / max(1, self.metrics.nodes_explored)
+        
+        # Converter métricas para dicionário
+        metrics_dict = {
             'nodes_explored': self.metrics.nodes_explored,
             'nodes_pruned': self.metrics.nodes_pruned,
-            'pruning_ratio': self.metrics.nodes_pruned / max(1, self.metrics.nodes_explored),
+            'pruning_ratio': pruning_ratio,  # 🔥 AGORA ESTÁ DEFINIDO
             'max_depth': self.metrics.max_depth,
             'execution_time': self.metrics.end_time - self.metrics.start_time,
             'feasible_solutions': self.metrics.feasible_solutions,
             'best_makespan': self.best_makespan,
             'theoretical_lb': sum(self.processing_times) / self.num_machines
         }
-
+        
+        return self.best_solution, self.best_makespan, metrics_dict
+    
     def print_detailed_analysis(self, solution: List[int], metrics: Dict):
         """Análise completa da execução"""
         print("\n" + "="*70)
         print("RELATÓRIO COMPLETO - BRANCH AND BOUND")
         print("="*70)
-
+        
         # Métricas de execução
         print(f"\nMÉTRICAS DE EXECUÇÃO:")
         print(f"   • Nós explorados: {metrics['nodes_explored']:,}")
         print(f"   • Nós podados: {metrics['nodes_pruned']:,}")
-        print(f"   • Taxa de poda: {metrics['pruning_ratio']:.1%}")
+        print(f"   • Taxa de poda: {metrics['pruning_ratio']:.1%}")  # 🔥 AGORA FUNCIONA
         print(f"   • Profundidade máxima: {metrics['max_depth']}")
         print(f"   • Soluções viáveis encontradas: {metrics['feasible_solutions']}")
         print(f"   • Tempo de execução: {metrics['execution_time']:.2f}s")
-
+        
         # Análise da solução
         print(f"\nANÁLISE DA SOLUÇÃO:")
         machine_totals = [0, 0, 0]
         for job_id, machine in enumerate(solution):
             machine_totals[machine] += self.processing_times[job_id]
-
+        
         print(f"   • Makespan alcançado: {metrics['best_makespan']:.2f}h")
         print(f"   • Limite inferior teórico: {metrics['theoretical_lb']:.2f}h")
-        print(f"   • Gap de otimalidade: {((metrics['best_makespan'] - metrics['theoretical_lb']) / metrics['theoretical_lb']) * 100:.2f}%")
+        gap = ((metrics['best_makespan'] - metrics['theoretical_lb']) / metrics['theoretical_lb']) * 100
+        print(f"   • Gap de otimalidade: {gap:.2f}%")
         print(f"   • Balanceamento entre máquinas: {[f'{t:.1f}h' for t in machine_totals]}")
 
-# EXECUÇÃO COMPLETA
+# EXECUÇÃO PRINCIPAL
 if __name__ == "__main__":
-    # Seus dados
+    # Dados do problema
     processing_times = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75]
-
-    print("EXECUTANDO BRANCH AND BOUND OTIMIZADO")
+    
+    print("EXECUTANDO BRANCH AND BOUND")
     print("=" * 50)
-
+    
+    # Criar e executar scheduler
     scheduler = OptimizedBranchAndBound(processing_times)
     solution, makespan, metrics = scheduler.solve()
-
+    
+    # Exibir resultados
     scheduler.print_detailed_analysis(solution, metrics)
+    
+    print(f"\nExecução concluída com sucesso!")
