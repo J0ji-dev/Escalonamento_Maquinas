@@ -10,10 +10,6 @@ Este repositório propõe-se a resolver uma instância do problema de *Flowshop 
     - [Seleção do dataset](#seleção-do-dataset)
     - [Limpeza e padronização](#limpeza-e-padronização)
     - [Análise Exploratória de Dados (EDA)](#an%C3%A1lise-explorat%C3%B3ria-de-dados-eda)
-        - Inspeção e estrutura do dataset
-        - Estatísticas descritivas
-        - Tratamento e preparação
-        - Visualização exploratória
 2. [Implementação do Branch and Bound](#implementa%C3%A7%C3%A3o-do-branch-and-bound)
    - [Estrutura do algoritmo](#estrutura-do-algoritmo)
    - [Métricas de execução](#m%C3%A9tricas-de-execu%C3%A7%C3%A3o)
@@ -38,7 +34,7 @@ Tendo em vista que não há dados faltantes e nem duplicados, o primeiro ajuste 
 Aqui está o trecho de código onde tal modificação é feita:
 ```py
 if "Unnamed: 0" in df.columns:
-  df.drop(columns=["Unnamed: 0"], inplace=True)
+    df.drop(columns=["Unnamed: 0"], inplace=True)
 ```
 
 Em seguida, padronizamos os rótulos das colunas e linhas: as colunas receberam o prefixo `Maquina_` seguido de um índice (1 a 3), e as linhas receberam o prefixo `Tarefa_` seguido de seu índice correspondente.
@@ -46,7 +42,7 @@ Em seguida, padronizamos os rótulos das colunas e linhas: as colunas receberam 
 Em código:
 ```py
 num_rows, num_cols = df.shape
-df.columns = [f"Maquina_{i+1}" for i in range(num_cols)]
+df.columns = [f"Máquina_{i+1}" for i in range(num_cols)]
 df.index = [f"Tarefa_{i+1}" for i in range(num_rows)]
 df.index.name = "Tarefas"
 ```
@@ -54,8 +50,6 @@ df.index.name = "Tarefas"
 ---
 
 ### Análise Exploratória de Dados (EDA)
-
-#### Inspeção e estrutura do dataset
 
 > [!NOTE]
 > Clique <a href= "https://github.com/J0ji-dev/Escalonamento_Maquinas/blob/main/Dados/Documenta%C3%A7%C3%A3o%20-%20Preparo%20de%20Dados.pdf" target="_blank">aqui</a> esteja interessado em maiores informações dessa etapa em particular.
@@ -73,62 +67,55 @@ A implementação adjacente faz uso de uma fila de prioridade, esta implementada
 Em código:
 ```py
 # Método encarregado do cálculo
-def calculate_lower_bound(self, machine_times: List[float], level: int) -> float:
-  state_key = (tuple(machine_times), level)
-  if state_key in self.lb_cache:
-    return self.lb_cache[state_key]
-        current_max = max(machine_times)
-        unassigned_times = self.processing_times[level:]
-        lb = max(current_max, sum(unassigned_times)/self.num_machines if unassigned_times else current_max)
-        self.lb_cache[state_key] = lb
-        return lb
+def lower_bound(self, machine_times: List[float]) -> float:
+        return max(machine_times)
 ```
 
 - Expansão dos nós e poda de ramos inviáveis
 
-  Em código:
-  ```py
-  # Método responsável
-  def solve(self) -> Tuple[List[int], float, Dict]:
-    self.metrics.start_time = time.time()
-    root_machine_times = [0.0, 0.0, 0.0]
-    root_lb = self.calculate_lower_bound(root_machine_times, 0)
-    pq = []
-    heapq.heappush(pq, (root_lb, 0, root_machine_times, [], 0))
-    while pq:
-        current_lb, level, machine_times, assignment, depth = heapq.heappop(pq)
-        self.metrics.nodes_explored += 1
-        self.metrics.max_depth = max(self.metrics.max_depth, depth)
-        if current_lb >= self.best_makespan:
-            self.metrics.nodes_pruned += 1
-            continue
-        if level == self.num_jobs:
-            self.metrics.feasible_solutions += 1
-            makespan = max(machine_times)
-            if makespan < self.best_makespan:
-                self.best_makespan = makespan
-                self.best_solution = assignment.copy()
-            continue
-        next_job = self.processing_times[level]
-        for machine in range(self.num_machines):
-            new_times = machine_times.copy()
-            new_times[machine] += next_job
-            new_lb = self.calculate_lower_bound(new_times, level + 1)
-            if new_lb < self.best_makespan:
-                heapq.heappush(pq, (new_lb, level + 1, new_times, assignment + [machine], depth + 1))
-    self.metrics.end_time = time.time()
-    return self.best_solution, self.best_makespan, self._get_metrics_dict()
-  ```
+Em código:
+```py
+# Método responsável
+   def solve(self) -> Tuple[List[int], float, Dict]:
+        self.metrics.start_time = time.time()
+        pq = [(0, 0, [0, 0, 0], [], 0)]  # (bound, level, times, seq, depth)
+
+        while pq:
+            pq.sort(key=lambda x: x[0])
+            bound, level, times, seq, depth = pq.pop(0)
+            self.metrics.nodes_explored += 1
+
+            if bound >= self.best_makespan:
+                self.metrics.nodes_pruned += 1
+                continue
+
+            if level == self.num_jobs:
+                makespan = max(times)
+                if makespan < self.best_makespan:
+                    self.best_makespan = makespan
+                    self.best_solution = seq
+                continue
+
+            next_job = self.processing_times[level]
+            for m in range(3):
+                new_times = times.copy()
+                new_times[m] += next_job
+                new_bound = self.lower_bound(new_times)
+                pq.append((new_bound, level + 1, new_times, seq + [m], depth + 1))
+
+        self.metrics.end_time = time.time()
+        return self.best_solution, self.best_makespan, vars(self.metrics)
+```
 
 ---
 
   ### Métricas de execução
-
-  Todas as informações relevantes para as métricas são armazenadas numa classe `SearchMetrics`. As duas propriedades *time* (`start_time` e `end_time`) são manipuladas para cálculo do tempo de execução efetivo do algoritmo
+  
+Todas as informações relevantes para as métricas são armazenadas numa classe `SearchMetrics`. As duas propriedades *time* (`start_time` e `end_time`) são manipuladas para cálculo do tempo de execução efetivo do algoritmo
 
   Em código:
   ```py
-  @dataclass
+@dataclass
 class SearchMetrics:
     nodes_explored: int = 0     # Nós explorados
     nodes_pruned: int = 0       # Nós podados
@@ -146,4 +133,4 @@ Para garantia da reprodutibilidade da aplicação foram adotas as seguintes medi
 
 - Arquivo `README.md` explicativo
 - Arquivo `requirements.txt` para declaração de dependências
-- Script `streamlit.py` para centralização da execução
+- Script `app.py` para centralização da execução
