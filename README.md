@@ -14,6 +14,11 @@ Este repositório propõe-se a resolver uma instância do problema de *Flowshop 
    - [Estrutura do algoritmo](#estrutura-do-algoritmo)
    - [Métricas de execução](#m%C3%A9tricas-de-execu%C3%A7%C3%A3o)
    - [Reprodutibilidade](#reprodutibilidade)
+3. [Como executar a aplicação](#como-executar-a-aplica%C3%A7%C3%A3o)
+    1. [Pré-requisitos](#pr%C3%A9-requisitos)
+    2. [Clonando o repositório](#clonando-o-reposit%C3%B3rio)
+    3. [Instalando dependências](#instalando-depend%C3%AAncias)
+    4. [Executando](#executando)
 
 ## Aquisição e preparo de dados
 
@@ -134,3 +139,47 @@ Para garantia da reprodutibilidade da aplicação foram adotas as seguintes medi
 - Arquivo `README.md` explicativo
 - Arquivo `requirements.txt` para declaração de dependências
 - Script `app.py` para centralização da execução
+
+## Como executar a aplicação
+
+Essa seção tem como propósito orientá-lo(a) durante o processo de **instalação** e **execução** da aplicação.
+
+### Pré-requisitos
+
+Certifique-se de ter ambas as ferramentas presentes na máquina em que deseja executar.
+
+- [Python](https://www.python.org/downloads/)
+- [Git](https://git-scm.com/install/)
+
+---
+
+### Clonando o repositório
+
+Execute o seguinte comando em algum terminal:
+```bash
+git clone https://github.com/J0ji-dev/Escalonamento_Maquinas.git
+```
+
+Como resultado, será gerada uma pasta `Escalonamento_Maquinas` na pasta atual, navegue até ela.
+
+---
+
+### Instalando dependências
+
+Na mesma pasta onde paramos na etapa anterior, vamos executar o seguinte comando:
+```bash
+pip install -r requirements.txt
+```
+
+Esse comando irá instalar as dependências listadas no já mencionado `requirements.txt`.
+
+---
+
+### Executando
+
+Por fim, basta rodar o seguinte comando:
+```bash
+streamlit run app.py
+```
+
+Você será redirecionado ao navegador, onde poderá ver o sistema funcionado.
