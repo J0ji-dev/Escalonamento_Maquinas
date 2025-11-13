@@ -52,7 +52,7 @@ df.index.name = "Tarefas"
 ### Análise Exploratória de Dados (EDA)
 
 > [!NOTE]
-> Clique <a href= "https://github.com/J0ji-dev/Escalonamento_Maquinas/blob/main/Dados/Documenta%C3%A7%C3%A3o%20-%20Preparo%20de%20Dados.pdf" target="_blank">aqui</a> esteja interessado em maiores informações dessa etapa em particular.
+> Clique <a href= "https://github.com/J0ji-dev/Escalonamento_Maquinas/blob/main/Dados/Documenta%C3%A7%C3%A3o%20-%20Preparo%20de%20Dados.pdf" target="_blank">aqui</a> caso esteja interessado em maiores informações dessa etapa em particular.
 
 ## Implementação do Branch and Bound
 
